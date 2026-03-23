@@ -2,7 +2,7 @@
 
 A STRIDE-based threat model for a cloud-hosted healthcare patient management system, identifying 15 prioritised security threats and mapping remediation to HIPAA compliance requirements.
 
-[View Interactive Threat Model](https://nfroze.github.io/Healthcare-Threat-Model-STRIDE-Analysis/threatmodel.html)
+[View Interactive Threat Model](https://nfroze.github.io/Healthcare-STRIDE-Threat-Model/threatmodel.html)
 
 ## Overview
 
