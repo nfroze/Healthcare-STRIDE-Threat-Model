@@ -1,42 +1,44 @@
-# Healthcare Threat Model: STRIDE Analysis for HIPAA-Compliant Patient Management System
+# Healthcare STRIDE Threat Model
 
-A comprehensive security threat model for CareConnect360, a cloud-hosted healthcare platform handling PHI and PII data. Identifies 15 prioritised threats across authentication, data protection, API security, and infrastructure—mapped to HIPAA Security Rule requirements with actionable remediation guidance.
+A STRIDE-based threat model for a cloud-hosted healthcare patient management system, identifying 15 prioritised security threats and mapping remediation to HIPAA compliance requirements.
 
 ## Overview
 
-Healthcare organisations face relentless pressure to digitise patient care while protecting highly regulated data. CareConnect360 represents a realistic AWS-hosted patient management system with common architectural patterns: React frontend, Node.js API, MariaDB database, Cognito authentication, and real-time telehealth capabilities via WebRTC. The question isn't whether vulnerabilities exist—it's whether the organisation has identified them before attackers do.
+Healthcare platforms handling Protected Health Information are high-value targets, yet many organisations deploy patient-facing systems without formal threat modelling. This project applies the STRIDE framework to CareConnect360 — a fictional but architecturally realistic patient management system built on AWS with a microservices architecture, MariaDB data tier, and real-time telehealth capabilities.
 
-This threat model applies the STRIDE methodology (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege) to systematically analyse trust boundaries and data flows across the architecture. Each threat is assessed for business impact, mapped to relevant HIPAA §164 controls, and paired with concrete remediation code. The output is a prioritised risk register that a security team could action immediately.
+The threat model catalogues 15 threats across authentication bypass, data exposure, API abuse, and infrastructure compromise categories. Each high-risk finding includes a concrete mitigation with implementation code — JWT algorithm pinning, S3 bucket policy hardening, IDOR prevention middleware, parameterised queries, and TURN server credential generation. The full analysis maps every finding against specific HIPAA Security Rule sections (§164.312) to show exactly where architectural gaps create compliance exposure.
 
-The model demonstrates how threat modelling shifts security left—catching issues like JWT algorithm confusion, S3 bucket misconfigurations, and IDOR vulnerabilities during design rather than in production incident response.
+The deliverable is a professionally formatted HTML report designed for consumption by security leadership, complete with a Mermaid architecture diagram, risk-rated threat register, and a prioritised 90-day remediation roadmap.
 
 ## Architecture
 
-The system spans five trust boundaries: a public-facing DMZ (WAF and ALB), application tier (React, Node.js, Lambda, WebRTC, Socket.IO), authentication services (Cognito with 2FA, JWT tokens), data tier (MariaDB for patient records, S3 for documents), and monitoring infrastructure (Prometheus, ELK Stack). External integration with MedTrack Pro introduces third-party supply chain considerations.
-
-Data flows from healthcare staff and patients through AWS WAF to the React frontend, with the Node.js API orchestrating authentication via Cognito, CRUD operations against MariaDB, file storage in S3, and real-time telehealth sessions. The architecture diagram in the threat model visualises these boundaries and highlights where trust transitions occur—the critical points where controls must exist.
+The threat model analyses a multi-tier AWS architecture spanning five trust boundaries: a public-facing DMZ (WAF + ALB), an application tier (React frontend, Node.js API, Lambda functions, WebRTC/Socket.IO for telehealth), Amazon Cognito authentication with JWT session management, a data tier (MariaDB for patient records, S3 for document storage), and a monitoring layer (Prometheus + ELK Stack). Third-party integration with MedTrack Pro introduces an additional supply chain attack surface analysed separately.
 
 ## Tech Stack
 
-**Frameworks**: STRIDE, MITRE ATT&CK, NIST Cybersecurity Framework, Cyber Kill Chain  
-**Compliance**: HIPAA Security Rule (§164.308–312)  
-**Target Platform**: AWS (EC2, Cognito, S3, Lambda, WAF, Secrets Manager)  
-**Application Stack**: React, Node.js/Express, MariaDB, WebRTC, Socket.IO  
-**Security Tools**: JWT, AWS Secrets Manager, Content Security Policy  
+**Security Frameworks**: STRIDE, OWASP Top 10, OWASP API Security Top 10, NIST SP 800-53
+
+**Compliance**: HIPAA Security Rule (§164.308, §164.312)
+
+**Target Architecture**: AWS (EC2, S3, Lambda, Cognito, WAF, ALB), MariaDB, WebRTC, Socket.IO
+
+**Reporting**: HTML/CSS/Mermaid.js threat model report
+
+**References**: CWE-287 (Improper Authentication), CWE-639 (Authorization Bypass)
 
 ## Key Decisions
 
-- **STRIDE over attack trees**: STRIDE provides systematic coverage of threat categories rather than scenario-specific paths. For a HIPAA-regulated system, this ensures no category of threat is overlooked during initial analysis.
+- **STRIDE over DREAD or PASTA**: STRIDE maps directly to the spoofing, tampering, repudiation, information disclosure, denial of service, and elevation of privilege categories that matter most for a healthcare platform handling PHI — it surfaces threats by type rather than burying them in aggregate risk scores.
 
-- **HIPAA control mapping**: Each threat links directly to specific Security Rule references (§164.312, etc.), making the model immediately useful for compliance teams and auditors—not just security engineers.
+- **Code-level mitigations, not just recommendations**: Each high-risk threat includes working implementation code (Node.js/Express middleware, AWS policy JSON, GitHub Actions YAML) because telling a dev team "fix the auth" is less useful than showing them exactly how.
 
-- **Remediation code examples**: Abstract recommendations ("implement secure token storage") are replaced with working code snippets. This bridges the gap between security architects who identify risks and developers who must fix them.
+- **HIPAA section-level mapping**: Rather than a generic "HIPAA compliant" checkbox, the model maps each threat to the specific §164 subsection it violates, making it actionable for compliance officers preparing for audit.
 
-- **Risk prioritisation over completeness**: Eight threats marked high-risk with immediate remediation required; seven medium-risk for 30-day planning. This acknowledges that security is resource-constrained and not everything can be fixed at once.
+- **HTML report format**: A self-contained HTML file with Mermaid diagrams renders anywhere without tooling dependencies, making it easy to share with non-technical stakeholders who need to understand the risk posture.
 
 ## Screenshots
 
-[![Threat Model Preview](screenshots/Website.png)](https://nfroze.github.io/Healthcare-Threat-Model-STRIDE-Analysis/threatmodel.html)
+![](screenshots/Website.png)
 
 [View Interactive Threat Model](https://nfroze.github.io/Healthcare-Threat-Model-STRIDE-Analysis/threatmodel.html)
 
