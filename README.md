@@ -2,6 +2,8 @@
 
 A STRIDE-based threat model for a cloud-hosted healthcare patient management system, identifying 15 prioritised security threats and mapping remediation to HIPAA compliance requirements.
 
+[View Interactive Threat Model](https://nfroze.github.io/Healthcare-Threat-Model-STRIDE-Analysis/threatmodel.html)
+
 ## Overview
 
 Healthcare platforms handling Protected Health Information are high-value targets, yet many organisations deploy patient-facing systems without formal threat modelling. This project applies the STRIDE framework to CareConnect360 — a fictional but architecturally realistic patient management system built on AWS with a microservices architecture, MariaDB data tier, and real-time telehealth capabilities.
@@ -39,8 +41,6 @@ The threat model analyses a multi-tier AWS architecture spanning five trust boun
 ## Screenshots
 
 ![](screenshots/Website.png)
-
-[View Interactive Threat Model](https://nfroze.github.io/Healthcare-Threat-Model-STRIDE-Analysis/threatmodel.html)
 
 ## Author
 
