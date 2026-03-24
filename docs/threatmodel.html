@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CareConnect360 Threat Model</title>
+    <title>Meridian PMS Threat Model</title>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -847,13 +847,14 @@
     <nav>
         <div class="nav-container">
             <a href="#" class="nav-brand">
-                <span class="nav-brand-icon">🛡️</span>
-                CareConnect360
+                <span class="nav-brand-icon"></span>
+                Meridian PMS
             </a>
             <div class="nav-links">
                 <a href="#summary">Summary</a>
                 <a href="#architecture">Architecture</a>
                 <a href="#assets">Assets</a>
+                <a href="#scoring">Scoring</a>
                 <a href="#threats">Threats</a>
                 <a href="#mitigations">Mitigations</a>
                 <a href="#hipaa">HIPAA</a>
@@ -868,7 +869,7 @@
     <main>
         <header class="hero">
             <div class="hero-eyebrow">Threat Model v1.0</div>
-            <h1>CareConnect360<br>Security Assessment</h1>
+            <h1>Meridian PMS<br>Security Assessment</h1>
             <div class="hero-meta">
                 <div class="meta-item">
                     <span class="meta-label">Version</span>
@@ -892,14 +893,14 @@
         <section id="summary">
             <h2>Executive Summary</h2>
             <div class="summary-card">
-                <p>CareConnect360 is a cloud-hosted healthcare patient management system built on AWS infrastructure using a microservices architecture. The platform enables healthcare organizations to manage patient records, appointments, medications, and telehealth sessions through a publicly accessible web portal. Given its handling of Protected Health Information (PHI) and Personally Identifiable Information (PII), the system falls under HIPAA regulatory requirements and represents a high-value target for threat actors.</p>
-                <p>This threat model assesses the security posture of CareConnect360's core components: Amazon Cognito authentication, JWT session management, MariaDB patient data storage, S3 file storage, real-time WebRTC/Socket.IO communications, and third-party API integrations. The analysis identifies <strong>15 prioritized threats</strong> across authentication bypass, data exposure, API abuse, and infrastructure compromise categories.</p>
+                <p>Meridian PMS is a cloud-hosted healthcare patient management system built on AWS infrastructure using a microservices architecture. The platform enables healthcare organizations to manage patient records, appointments, medications, and telehealth sessions through a publicly accessible web portal. Given its handling of Protected Health Information (PHI) and Personally Identifiable Information (PII), the system falls under HIPAA regulatory requirements and represents a high-value target for threat actors.</p>
+                <p>This threat model assesses the security posture of Meridian PMS's core components: Amazon Cognito authentication, JWT session management, MariaDB patient data storage, S3 file storage, real-time WebRTC/Socket.IO communications, and third-party API integrations. The analysis identifies <strong>15 prioritized threats</strong> across authentication bypass, data exposure, API abuse, and infrastructure compromise categories.</p>
                 
                 <div class="key-findings">
                     <div class="key-findings-title">
-                        <span>⚠️</span> Key Findings
+                        <span></span> Key Findings
                     </div>
-                    <p>The current architecture has significant gaps in JWT validation hardening, S3 access controls, WebRTC TURN server authentication, and audit logging completeness. <strong>Eight high-risk threats require immediate remediation</strong> to achieve acceptable HIPAA compliance posture. The third-party integration with MedTrack Pro introduces supply chain risk that is not adequately addressed by current controls.</p>
+                    <p>The current architecture has significant gaps in JWT validation hardening, S3 access controls, WebRTC TURN server authentication, and audit logging completeness. <strong>Eight high-risk threats require immediate remediation</strong> to achieve acceptable HIPAA compliance posture. The third-party integration with ScriptGuard introduces supply chain risk that is not adequately addressed by current controls.</p>
                 </div>
             </div>
         </section>
@@ -912,7 +913,7 @@ flowchart TB
     subgraph Internet["Internet (Untrusted)"]
         User[Healthcare Staff]
         Patient[Patient Portal Users]
-        ExtAPI[MedTrack Pro API]
+        ExtAPI[ScriptGuard API]
     end
 
     subgraph TrustBoundary1["DMZ - Public Facing"]
@@ -1046,6 +1047,26 @@ flowchart TB
             </div>
         </section>
 
+        <section id="scoring">
+            <h2>Risk Scoring Methodology</h2>
+            <div class="summary-card">
+                <p><strong>Risk ratings follow the OWASP Risk Rating Methodology:</strong> Risk = Likelihood x Impact.</p>
+                <p><strong>Likelihood</strong> considers exploitability (skill required, tooling availability, public knowledge of the attack vector) and exposure (whether the component is internet-facing, requires authentication, or sits behind existing controls).</p>
+                <p><strong>Impact</strong> considers the scope of data at risk (PHI record count, data sensitivity classification), HIPAA regulatory exposure (specific §164 subsections violated), and service availability consequences.</p>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1rem; margin-top: 2rem;">
+                <div class="summary-card" style="margin-bottom: 0;">
+                    <h4 style="color: var(--risk-high); margin-bottom: 0.75rem;">High Risk</h4>
+                    <p style="font-size: 0.95rem; margin-bottom: 0;">Exploitable by an unauthenticated or low-skill attacker against an internet-facing component, OR directly exposes PHI/PII, OR bypasses a primary security control (authentication, authorization, encryption).</p>
+                </div>
+                <div class="summary-card" style="margin-bottom: 0;">
+                    <h4 style="color: var(--risk-medium); margin-bottom: 0.75rem;">Medium Risk</h4>
+                    <p style="font-size: 0.95rem; margin-bottom: 0;">Requires authenticated access or specific preconditions to exploit, AND exposes system metadata or operational data rather than PHI directly, OR degrades a defence-in-depth layer without fully bypassing it.</p>
+                </div>
+            </div>
+        </section>
+
         <section id="threats">
             <h2>Threat Register</h2>
             <div class="table-container">
@@ -1136,7 +1157,7 @@ flowchart TB
                         <tr>
                             <td><span class="threat-id">API-03</span></td>
                             <td><span class="category-badge">Spoofing</span></td>
-                            <td>MedTrack Pro API key compromise enables unauthorized medication data access</td>
+                            <td>ScriptGuard API key compromise enables unauthorized medication data access</td>
                             <td>Third-party Integration</td>
                             <td><span class="risk-badge risk-high">High</span></td>
                             <td><span class="status-badge status-not-addressed">Not Addressed</span></td>
@@ -1275,8 +1296,8 @@ res.<span class="function">cookie</span>(<span class="string">'accessToken'</spa
       <span class="property">"Principal"</span>: <span class="string">"*"</span>,
       <span class="property">"Action"</span>: <span class="string">"s3:*"</span>,
       <span class="property">"Resource"</span>: [
-        <span class="string">"arn:aws:s3:::careconnect360-patient-docs"</span>,
-        <span class="string">"arn:aws:s3:::careconnect360-patient-docs/*"</span>
+        <span class="string">"arn:aws:s3:::meridian-pms-patient-docs"</span>,
+        <span class="string">"arn:aws:s3:::meridian-pms-patient-docs/*"</span>
       ],
       <span class="property">"Condition"</span>: {
         <span class="property">"Bool"</span>: { <span class="property">"aws:SecureTransport"</span>: <span class="string">"false"</span> }
@@ -1363,17 +1384,17 @@ app.<span class="function">get</span>(<span class="string">'/api/patients/:patie
                 </div>
                 <div class="mitigation-body">
                     <div class="threat-description">
-                        <strong>Threat:</strong> MedTrack Pro API key compromise
+                        <strong>Threat:</strong> ScriptGuard API key compromise
                     </div>
                     <div class="recommendation">
                         <h4>Recommendation</h4>
                         <p>Store API keys in AWS Secrets Manager with rotation. Implement request signing and IP allowlisting.</p>
                     </div>
                     <pre data-language="JavaScript"><code><span class="comment">// Rotate keys and use short-lived tokens where supported</span>
-<span class="keyword">const</span> <span class="function">getMedTrackClient</span> = <span class="keyword">async</span> () => {
-  <span class="keyword">const</span> apiKey = <span class="keyword">await</span> <span class="function">getSecretValue</span>(<span class="string">'careconnect360/medtrack/apikey'</span>);
+<span class="keyword">const</span> <span class="function">getScriptGuardClient</span> = <span class="keyword">async</span> () => {
+  <span class="keyword">const</span> apiKey = <span class="keyword">await</span> <span class="function">getSecretValue</span>(<span class="string">'meridian-pms/scriptguard/apikey'</span>);
   <span class="keyword">return</span> axios.<span class="function">create</span>({
-    <span class="property">baseURL</span>: <span class="string">'https://api.medtrackpro.com/v2'</span>,
+    <span class="property">baseURL</span>: <span class="string">'https://api.scriptguard.io/v2'</span>,
     <span class="property">headers</span>: {
       <span class="string">'X-API-Key'</span>: apiKey,
       <span class="string">'X-Request-ID'</span>: crypto.<span class="function">randomUUID</span>()
@@ -1384,7 +1405,7 @@ app.<span class="function">get</span>(<span class="string">'/api/patients/:patie
                     <h4>Network Controls</h4>
                     <ul class="controls-list">
                         <li>Configure VPC endpoints for outbound API calls</li>
-                        <li>Implement egress filtering to allow only MedTrack Pro IP ranges</li>
+                        <li>Implement egress filtering to allow only ScriptGuard IP ranges</li>
                         <li>Log all third-party API requests to ELK</li>
                     </ul>
                 </div>
@@ -1415,7 +1436,7 @@ app.<span class="function">get</span>(<span class="string">'/api/patients/:patie
     .<span class="function">digest</span>(<span class="string">'base64'</span>);
   
   <span class="keyword">return</span> {
-    <span class="property">urls</span>: [<span class="string">'turn:turn.careconnect360.com:443?transport=tcp'</span>],
+    <span class="property">urls</span>: [<span class="string">'turn:turn.meridian-pms.com:443?transport=tcp'</span>],
     username,
     credential
   };
@@ -1459,6 +1480,239 @@ app.<span class="function">get</span>(<span class="string">'/api/patients/:patie
         <span class="property">with</span>:
           <span class="property">role-to-assume</span>: arn:aws:iam::ACCOUNT:role/github-deploy
           <span class="property">aws-region</span>: us-east-1</code></pre>
+                </div>
+            </div>
+
+            <div class="mitigation-card">
+                <div class="mitigation-header">
+                    <div class="mitigation-title">
+                        <span class="threat-id">AUTH-02</span>
+                        <h3>Mitigate Cognito User Enumeration</h3>
+                    </div>
+                    <span class="risk-badge risk-medium">Medium Risk</span>
+                </div>
+                <div class="mitigation-body">
+                    <div class="threat-description">
+                        <strong>Threat:</strong> Differential response timing reveals valid usernames
+                    </div>
+                    <div class="recommendation">
+                        <h4>Recommendation</h4>
+                        <p>Enable Cognito's PREVENT_USER_EXISTENCE_ERRORS setting.</p>
+                    </div>
+                    <pre data-language="Bash"><code><span class="keyword">aws</span> cognito-idp update-user-pool-client \
+  --user-pool-id us-east-1_XXXXX \
+  --client-id YOUR_CLIENT_ID \
+  --prevent-user-existence-errors ENABLED</code></pre>
+                    <div class="recommendation">
+                        <h4>Additional Controls</h4>
+                        <ul class="controls-list">
+                            <li>Constant-time comparison in custom auth Lambda triggers</li>
+                            <li>Rate limit login attempts per source IP via WAF rules</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mitigation-card">
+                <div class="mitigation-header">
+                    <div class="mitigation-title">
+                        <span class="threat-id">AUTH-04</span>
+                        <h3>Implement Comprehensive Authentication Logging</h3>
+                    </div>
+                    <span class="risk-badge risk-medium">Medium Risk</span>
+                </div>
+                <div class="mitigation-body">
+                    <div class="threat-description">
+                        <strong>Threat:</strong> Insufficient auth failure logging prevents breach detection
+                    </div>
+                    <div class="recommendation">
+                        <h4>Recommendation</h4>
+                        <p>Log all authentication events with structured fields for correlation. Ship to ELK with alerting.</p>
+                    </div>
+                    <pre data-language="JavaScript"><code><span class="keyword">const</span> <span class="function">logAuthEvent</span> = (event, req) => {
+  logger.<span class="function">info</span>({
+    <span class="property">type</span>: <span class="string">'AUTH_EVENT'</span>,
+    <span class="property">action</span>: event.action,
+    <span class="property">userId</span>: event.userId || <span class="string">'unknown'</span>,
+    <span class="property">sourceIp</span>: req.ip,
+    <span class="property">userAgent</span>: req.headers[<span class="string">'user-agent'</span>],
+    <span class="property">timestamp</span>: <span class="keyword">new</span> <span class="function">Date</span>().<span class="function">toISOString</span>(),
+    <span class="property">failureReason</span>: event.reason || <span class="keyword">null</span>
+  });
+};</code></pre>
+                    <div class="recommendation">
+                        <h4>Alerting Rules</h4>
+                        <ul class="controls-list">
+                            <li>&gt;5 failed logins from single IP within 10 mins</li>
+                            <li>Successful login from new geographic region</li>
+                            <li>Retain auth logs minimum 6 years per HIPAA §164.312(b)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mitigation-card">
+                <div class="mitigation-header">
+                    <div class="mitigation-title">
+                        <span class="threat-id">API-02</span>
+                        <h3>Implement API Rate Limiting</h3>
+                    </div>
+                    <span class="risk-badge risk-medium">Medium Risk</span>
+                </div>
+                <div class="mitigation-body">
+                    <div class="threat-description">
+                        <strong>Threat:</strong> Unrestricted API access enables resource exhaustion
+                    </div>
+                    <div class="recommendation">
+                        <h4>Recommendation</h4>
+                        <p>Apply rate limits at both API Gateway and application layers using sliding window counters.</p>
+                    </div>
+                    <pre data-language="JavaScript"><code><span class="keyword">const</span> rateLimit = <span class="function">require</span>(<span class="string">'express-rate-limit'</span>);
+
+<span class="keyword">const</span> apiLimiter = <span class="function">rateLimit</span>({
+  <span class="property">windowMs</span>: <span class="number">60</span> * <span class="number">1000</span>,
+  <span class="property">max</span>: <span class="number">100</span>,
+  <span class="property">standardHeaders</span>: <span class="keyword">true</span>,
+  <span class="property">legacyHeaders</span>: <span class="keyword">false</span>,
+  <span class="property">keyGenerator</span>: (req) => req.user?.sub || req.ip,
+  <span class="property">handler</span>: (req, res) => {
+    logger.<span class="function">warn</span>(<span class="string">'Rate limit exceeded'</span>, { userId: req.user?.sub, ip: req.ip });
+    res.<span class="function">status</span>(<span class="number">429</span>).<span class="function">json</span>({ <span class="property">error</span>: <span class="string">'Too many requests'</span> });
+  }
+});
+
+app.<span class="function">use</span>(<span class="string">'/api/'</span>, apiLimiter);</code></pre>
+                    <div class="recommendation">
+                        <h4>Additional Controls</h4>
+                        <ul class="controls-list">
+                            <li>AWS WAF rate-based rules at 2,000 req/5 min per IP</li>
+                            <li>Stricter limits on /api/patients/search at 20 req/min</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mitigation-card">
+                <div class="mitigation-header">
+                    <div class="mitigation-title">
+                        <span class="threat-id">RTC-02</span>
+                        <h3>Validate Socket.IO Connection Origins</h3>
+                    </div>
+                    <span class="risk-badge risk-medium">Medium Risk</span>
+                </div>
+                <div class="mitigation-body">
+                    <div class="threat-description">
+                        <strong>Threat:</strong> Cross-site Socket.IO hijacking via missing origin validation
+                    </div>
+                    <div class="recommendation">
+                        <h4>Recommendation</h4>
+                        <p>Restrict Socket.IO connections to trusted origins and require JWT authentication on handshake.</p>
+                    </div>
+                    <pre data-language="JavaScript"><code><span class="keyword">const</span> io = <span class="function">require</span>(<span class="string">'socket.io'</span>)(server, {
+  <span class="property">cors</span>: {
+    <span class="property">origin</span>: [<span class="string">'https://meridian-pms.com'</span>],
+    <span class="property">methods</span>: [<span class="string">'GET'</span>, <span class="string">'POST'</span>],
+    <span class="property">credentials</span>: <span class="keyword">true</span>
+  }
+});
+
+io.<span class="function">use</span>((socket, next) => {
+  <span class="keyword">const</span> token = socket.handshake.auth.token;
+  <span class="keyword">try</span> {
+    <span class="keyword">const</span> decoded = jwt.<span class="function">verify</span>(token, publicKey, { <span class="property">algorithms</span>: [<span class="string">'RS256'</span>] });
+    socket.user = decoded;
+    <span class="function">next</span>();
+  } <span class="keyword">catch</span> (err) {
+    logger.<span class="function">warn</span>(<span class="string">'Socket.IO auth failed'</span>, { ip: socket.handshake.address, error: err.message });
+    <span class="function">next</span>(<span class="keyword">new</span> <span class="function">Error</span>(<span class="string">'Authentication required'</span>));
+  }
+});</code></pre>
+                </div>
+            </div>
+
+            <div class="mitigation-card">
+                <div class="mitigation-header">
+                    <div class="mitigation-title">
+                        <span class="threat-id">INFRA-01</span>
+                        <h3>Apply Least-Privilege Lambda IAM Roles</h3>
+                    </div>
+                    <span class="risk-badge risk-medium">Medium Risk</span>
+                </div>
+                <div class="mitigation-body">
+                    <div class="threat-description">
+                        <strong>Threat:</strong> Over-permissioned Lambda roles enable lateral movement
+                    </div>
+                    <div class="recommendation">
+                        <h4>Recommendation</h4>
+                        <p>Create per-function IAM roles scoped to minimum required resources. Avoid wildcard permissions.</p>
+                    </div>
+                    <pre data-language="JSON"><code>{
+  <span class="string">"Version"</span>: <span class="string">"2012-10-17"</span>,
+  <span class="string">"Statement"</span>: [
+    {
+      <span class="string">"Effect"</span>: <span class="string">"Allow"</span>,
+      <span class="string">"Action"</span>: [
+        <span class="string">"s3:GetObject"</span>
+      ],
+      <span class="string">"Resource"</span>: <span class="string">"arn:aws:s3:::meridian-pms-patient-docs/lab-results/*"</span>
+    },
+    {
+      <span class="string">"Effect"</span>: <span class="string">"Allow"</span>,
+      <span class="string">"Action"</span>: [
+        <span class="string">"secretsmanager:GetSecretValue"</span>
+      ],
+      <span class="string">"Resource"</span>: <span class="string">"arn:aws:secretsmanager:us-east-1:ACCOUNT:secret:meridian-pms/mariadb/prod-*"</span>
+    }
+  ]
+}</code></pre>
+                    <div class="recommendation">
+                        <h4>Additional Controls</h4>
+                        <ul class="controls-list">
+                            <li>Use IAM Access Analyzer to identify unused permissions</li>
+                            <li>Enable CloudTrail for Lambda invocations</li>
+                            <li>Review IAM policies quarterly</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mitigation-card">
+                <div class="mitigation-header">
+                    <div class="mitigation-title">
+                        <span class="threat-id">INFRA-02</span>
+                        <h3>Secure Prometheus Metrics Endpoint</h3>
+                    </div>
+                    <span class="risk-badge risk-medium">Medium Risk</span>
+                </div>
+                <div class="mitigation-body">
+                    <div class="threat-description">
+                        <strong>Threat:</strong> Unauthenticated Prometheus endpoint leaks system metadata
+                    </div>
+                    <div class="recommendation">
+                        <h4>Recommendation</h4>
+                        <p>Place Prometheus behind an authentication proxy and restrict network access to monitoring VPC subnet.</p>
+                    </div>
+                    <pre data-language="YAML"><code><span class="keyword">server</span> {
+    <span class="property">listen</span> <span class="number">9090</span> ssl;
+    <span class="property">server_name</span> prometheus.internal.meridian-pms.com;
+
+    <span class="property">ssl_certificate</span> /etc/ssl/certs/prometheus.crt;
+    <span class="property">ssl_certificate_key</span> /etc/ssl/private/prometheus.key;
+
+    <span class="property">location</span> / {
+        <span class="property">auth_basic</span> <span class="string">"Prometheus"</span>;
+        <span class="property">auth_basic_user_file</span> /etc/nginx/.htpasswd;
+        <span class="property">proxy_pass</span> http://localhost:9091;
+    }
+}</code></pre>
+                    <div class="recommendation">
+                        <h4>Network Controls</h4>
+                        <ul class="controls-list">
+                            <li>Bind Prometheus to localhost (127.0.0.1:9091)</li>
+                            <li>Restrict security group ingress to monitoring subnet CIDR only</li>
+                            <li>Scrub sensitive labels from exported metrics using metric_relabel_configs</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </section>
@@ -1571,7 +1825,7 @@ app.<span class="function">get</span>(<span class="string">'/api/patients/:patie
 
             <div class="overall-risk">
                 <div class="overall-risk-label">Overall Risk Posture</div>
-                <div class="overall-risk-value">⚠️ HIGH</div>
+                <div class="overall-risk-value">HIGH</div>
                 <p>Multiple unaddressed vulnerabilities in authentication and data protection create significant breach risk and HIPAA compliance gaps.</p>
             </div>
         </section>
@@ -1580,7 +1834,7 @@ app.<span class="function">get</span>(<span class="string">'/api/patients/:patie
             <h2>References</h2>
             <div class="references-list">
                 <a href="https://owasp.org/Top10/" class="reference-item" target="_blank">
-                    <div class="reference-icon">📋</div>
+                    <div class="reference-icon"></div>
                     <div class="reference-content">
                         <div class="reference-title">OWASP Top 10 2021</div>
                         <div class="reference-url">owasp.org/Top10/</div>
@@ -1601,14 +1855,14 @@ app.<span class="function">get</span>(<span class="string">'/api/patients/:patie
                     </div>
                 </a>
                 <a href="https://www.nist.gov/cyberframework" class="reference-item" target="_blank">
-                    <div class="reference-icon">🛡️</div>
+                    <div class="reference-icon"></div>
                     <div class="reference-content">
                         <div class="reference-title">NIST Cybersecurity Framework</div>
                         <div class="reference-url">nist.gov/cyberframework</div>
                     </div>
                 </a>
                 <a href="https://www.hhs.gov/hipaa/for-professionals/security/guidance/" class="reference-item" target="_blank">
-                    <div class="reference-icon">🏥</div>
+                    <div class="reference-icon"></div>
                     <div class="reference-content">
                         <div class="reference-title">HHS HIPAA Security Rule Guidance</div>
                         <div class="reference-url">hhs.gov/hipaa/for-professionals/security/guidance/</div>
@@ -1622,7 +1876,7 @@ app.<span class="function">get</span>(<span class="string">'/api/patients/:patie
                     </div>
                 </a>
                 <a href="https://cwe.mitre.org/data/definitions/287.html" class="reference-item" target="_blank">
-                    <div class="reference-icon">🔐</div>
+                    <div class="reference-icon"></div>
                     <div class="reference-content">
                         <div class="reference-title">CWE-287 Improper Authentication</div>
                         <div class="reference-url">cwe.mitre.org/data/definitions/287.html</div>
@@ -1664,7 +1918,7 @@ app.<span class="function">get</span>(<span class="string">'/api/patients/:patie
 
         <footer>
             <div class="footer-notice">
-                ⚠️ This document contains security-sensitive information. Distribution is limited to authorized personnel with a need to know.
+                This document contains security-sensitive information. Distribution is limited to authorized personnel with a need to know.
             </div>
         </footer>
     </main>

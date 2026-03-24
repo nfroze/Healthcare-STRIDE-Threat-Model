@@ -1,4 +1,4 @@
-# CareConnect360 Threat Model
+# Meridian PMS Threat Model
 
 **Version:** 1.0  
 **Date:** December 19, 2025  
@@ -10,11 +10,11 @@
 
 ## Executive Summary
 
-CareConnect360 is a cloud-hosted healthcare patient management system built on AWS infrastructure using a microservices architecture. The platform enables healthcare organizations to manage patient records, appointments, medications, and telehealth sessions through a publicly accessible web portal. Given its handling of Protected Health Information (PHI) and Personally Identifiable Information (PII), the system falls under HIPAA regulatory requirements and represents a high-value target for threat actors.
+Meridian PMS is a cloud-hosted healthcare patient management system built on AWS infrastructure using a microservices architecture. The platform enables healthcare organizations to manage patient records, appointments, medications, and telehealth sessions through a publicly accessible web portal. Given its handling of Protected Health Information (PHI) and Personally Identifiable Information (PII), the system falls under HIPAA regulatory requirements and represents a high-value target for threat actors.
 
-This threat model assesses the security posture of CareConnect360's core components: Amazon Cognito authentication, JWT session management, MariaDB patient data storage, S3 file storage, real-time WebRTC/Socket.IO communications, and third-party API integrations. The analysis identifies 15 prioritized threats across authentication bypass, data exposure, API abuse, and infrastructure compromise categories.
+This threat model assesses the security posture of Meridian PMS's core components: Amazon Cognito authentication, JWT session management, MariaDB patient data storage, S3 file storage, real-time WebRTC/Socket.IO communications, and third-party API integrations. The analysis identifies 15 prioritized threats across authentication bypass, data exposure, API abuse, and infrastructure compromise categories.
 
-**Key Findings:** The current architecture has significant gaps in JWT validation hardening, S3 access controls, WebRTC TURN server authentication, and audit logging completeness. Eight high-risk threats require immediate remediation to achieve acceptable HIPAA compliance posture. The third-party integration with MedTrack Pro introduces supply chain risk that is not adequately addressed by current controls.
+**Key Findings:** The current architecture has significant gaps in JWT validation hardening, S3 access controls, WebRTC TURN server authentication, and audit logging completeness. Eight high-risk threats require immediate remediation to achieve acceptable HIPAA compliance posture. The third-party integration with ScriptGuard introduces supply chain risk that is not adequately addressed by current controls.
 
 ---
 
@@ -25,7 +25,7 @@ flowchart TB
     subgraph Internet["Internet (Untrusted)"]
         User[Healthcare Staff]
         Patient[Patient Portal Users]
-        ExtAPI[MedTrack Pro API]
+        ExtAPI[ScriptGuard API]
     end
 
     subgraph TrustBoundary1["DMZ - Public Facing"]
@@ -93,25 +93,40 @@ flowchart TB
 
 ---
 
+## Risk Scoring Methodology
+
+Risk ratings follow the OWASP Risk Rating Methodology: **Risk = Likelihood x Impact**.
+
+**Likelihood** considers exploitability (skill required, tooling availability, public knowledge of the attack vector) and exposure (whether the component is internet-facing, requires authentication, or sits behind existing controls).
+
+**Impact** considers the scope of data at risk (PHI record count, data sensitivity classification), HIPAA regulatory exposure (specific §164 subsections violated), and service availability consequences.
+
+| Rating | Criteria |
+|--------|----------|
+| **High** | Exploitable by an unauthenticated or low-skill attacker against an internet-facing component, OR directly exposes PHI/PII, OR bypasses a primary security control (authentication, authorization, encryption) |
+| **Medium** | Requires authenticated access or specific preconditions to exploit, AND exposes system metadata or operational data rather than PHI directly, OR degrades a defence-in-depth layer without fully bypassing it |
+
+---
+
 ## Threat Register
 
-| ID | Category | Threat | Component | Risk | Status |
-|----|----------|--------|-----------|------|--------|
-| AUTH-01 | Spoofing | JWT algorithm confusion—attacker substitutes RS256 with HS256 using public key as secret | JWT Authentication | High | Not Addressed |
-| AUTH-02 | Spoofing | Cognito user enumeration via differential response timing on login attempts | Amazon Cognito | Medium | Not Addressed |
-| AUTH-03 | Elevation of Privilege | JWT token theft via XSS allows session hijacking with full user privileges | Frontend/JWT | High | Partial |
-| AUTH-04 | Repudiation | Insufficient logging of authentication failures prevents breach detection | ELK Stack | Medium | Not Addressed |
-| DATA-01 | Information Disclosure | S3 bucket misconfiguration exposes patient documents publicly | S3 Storage | High | Not Addressed |
-| DATA-02 | Information Disclosure | MariaDB connection strings hardcoded in application code or environment variables | Node.js API | High | Not Addressed |
-| DATA-03 | Tampering | SQL injection in patient search endpoint modifies or extracts PHI | MariaDB/API | High | Not Addressed |
-| API-01 | Elevation of Privilege | IDOR vulnerability allows patients to access other patients' records via predictable IDs | Patient API | High | Not Addressed |
-| API-02 | Denial of Service | Lack of rate limiting enables API abuse and resource exhaustion | Node.js API | Medium | Not Addressed |
-| API-03 | Spoofing | MedTrack Pro API key compromise enables unauthorized medication data access | Third-party Integration | High | Not Addressed |
-| RTC-01 | Information Disclosure | WebRTC TURN server lacks authentication, allowing unauthorized relay usage | WebRTC Gateway | High | Not Addressed |
-| RTC-02 | Information Disclosure | Socket.IO connections lack origin validation, enabling cross-site hijacking | Socket.IO Server | Medium | Not Addressed |
-| INFRA-01 | Elevation of Privilege | Lambda function IAM roles overly permissive, enabling lateral movement | AWS Lambda | Medium | Not Addressed |
-| INFRA-02 | Information Disclosure | Prometheus metrics endpoint exposed without authentication leaks system info | Prometheus | Medium | Not Addressed |
-| INFRA-03 | Tampering | GitHub Actions workflow injection via malicious PR modifies deployment | CI/CD Pipeline | High | Not Addressed |
+| ID | Category | Threat | Component | Likelihood | Impact | Risk | Status |
+|----|----------|--------|-----------|------------|--------|------|--------|
+| AUTH-01 | Spoofing | JWT algorithm confusion—attacker substitutes RS256 with HS256 using public key as secret | JWT Authentication | High — public key is retrievable from Cognito JWKS endpoint; attack is well-documented (CVE-2015-9235) | High — complete authentication bypass, full access to any user session including PHI | **High** | Not Addressed |
+| AUTH-02 | Spoofing | Cognito user enumeration via differential response timing on login attempts | Amazon Cognito | Medium — requires scripted timing analysis against a public endpoint; Cognito has partial built-in protections | Medium — reveals valid usernames but does not directly expose PHI; enables targeted credential attacks | **Medium** | Not Addressed |
+| AUTH-03 | Elevation of Privilege | JWT token theft via XSS allows session hijacking with full user privileges | Frontend/JWT | High — tokens stored in localStorage are accessible to any injected script; XSS vectors are common in React apps without strict CSP | High — stolen token grants full session access including PHI read/write | **High** | Partial |
+| AUTH-04 | Repudiation | Insufficient logging of authentication failures prevents breach detection | ELK Stack | Medium — logging gap is passive; attacker benefits only if already exploiting another vulnerability | Medium — delays breach detection but does not directly expose data; violates §164.312(b) audit requirements | **Medium** | Not Addressed |
+| DATA-01 | Information Disclosure | S3 bucket misconfiguration exposes patient documents publicly | S3 Storage | High — S3 bucket misconfigurations are actively scanned by automated tools; no authentication required if public | High — direct exposure of PHI documents (lab results, prescriptions, imaging) to the internet | **High** | Not Addressed |
+| DATA-02 | Information Disclosure | MariaDB connection strings hardcoded in application code or environment variables | Node.js API | High — credentials in source code or env vars are extractable via code repository access, SSRF, or log leakage | High — database credentials grant direct access to all patient records | **High** | Not Addressed |
+| DATA-03 | Tampering | SQL injection in patient search endpoint modifies or extracts PHI | MariaDB/API | High — patient search is a public-facing endpoint; SQLi is well-understood and tooling (sqlmap) is freely available | High — enables bulk extraction or modification of patient records; violates §164.312(c)(1) integrity controls | **High** | Not Addressed |
+| API-01 | Elevation of Privilege | IDOR vulnerability allows patients to access other patients' records via predictable IDs | Patient API | High — sequential or predictable IDs require no special tooling; any authenticated user can enumerate | High — cross-patient PHI access; violates §164.312(a)(1) access controls | **High** | Not Addressed |
+| API-02 | Denial of Service | Lack of rate limiting enables API abuse and resource exhaustion | Node.js API | Medium — requires sustained automated requests; WAF provides partial protection at the network layer | Medium — service degradation affects availability but does not expose PHI directly; impacts §164.312(a)(1) availability requirements | **Medium** | Not Addressed |
+| API-03 | Spoofing | ScriptGuard API key compromise enables unauthorized medication data access | Third-party Integration | High — static API key without rotation; single key compromise exposes the integration permanently | High — unauthorized access to medication data (PHI); potential for data manipulation affecting patient safety | **High** | Not Addressed |
+| RTC-01 | Information Disclosure | WebRTC TURN server lacks authentication, allowing unauthorized relay usage | WebRTC Gateway | High — unauthenticated TURN endpoints are discoverable via port scanning; abuse requires no credentials | High — exposes telehealth video streams (PHI); enables bandwidth abuse for traffic relay | **High** | Not Addressed |
+| RTC-02 | Information Disclosure | Socket.IO connections lack origin validation, enabling cross-site hijacking | Socket.IO Server | Medium — requires attacker to deliver a malicious page to a logged-in user (social engineering dependency) | Medium — exposes real-time messaging content; limited to the session of the targeted user rather than bulk data | **Medium** | Not Addressed |
+| INFRA-01 | Elevation of Privilege | Lambda function IAM roles overly permissive, enabling lateral movement | AWS Lambda | Medium — requires initial compromise of a Lambda function or its invocation path; not directly internet-facing | Medium — enables access to adjacent AWS resources (S3, MariaDB) but scope depends on the over-provisioned permissions | **Medium** | Not Addressed |
+| INFRA-02 | Information Disclosure | Prometheus metrics endpoint exposed without authentication leaks system info | Prometheus | Medium — endpoint must be network-reachable; default Prometheus port (9090) is commonly scanned | Medium — exposes system performance data, internal hostnames, and error rates; useful for reconnaissance but not direct PHI access | **Medium** | Not Addressed |
+| INFRA-03 | Tampering | GitHub Actions workflow injection via malicious PR modifies deployment | CI/CD Pipeline | High — public repositories accept PRs from any GitHub user; workflow_run and pull_request_target triggers are well-known vectors | High — code execution in deployment pipeline enables supply chain compromise; attacker can inject malicious code into production | **High** | Not Addressed |
 
 ---
 
@@ -181,8 +196,8 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'sel
       "Principal": "*",
       "Action": "s3:*",
       "Resource": [
-        "arn:aws:s3:::careconnect360-patient-docs",
-        "arn:aws:s3:::careconnect360-patient-docs/*"
+        "arn:aws:s3:::meridian-pms-patient-docs",
+        "arn:aws:s3:::meridian-pms-patient-docs/*"
       ],
       "Condition": {
         "Bool": {
@@ -195,7 +210,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'sel
       "Effect": "Deny",
       "Principal": "*",
       "Action": "s3:GetObject",
-      "Resource": "arn:aws:s3:::careconnect360-patient-docs/*",
+      "Resource": "arn:aws:s3:::meridian-pms-patient-docs/*",
       "Condition": {
         "StringNotEquals": {
           "aws:PrincipalAccount": "YOUR_ACCOUNT_ID"
@@ -209,7 +224,7 @@ Content-Security-Policy: default-src 'self'; script-src 'self'; connect-src 'sel
 **AWS CLI Verification:**
 
 ```bash
-aws s3api get-public-access-block --bucket careconnect360-patient-docs
+aws s3api get-public-access-block --bucket meridian-pms-patient-docs
 ```
 
 ---
@@ -226,7 +241,7 @@ const { SecretsManagerClient, GetSecretValueCommand } = require('@aws-sdk/client
 const getDbCredentials = async () => {
   const client = new SecretsManagerClient({ region: 'us-east-1' });
   const response = await client.send(
-    new GetSecretValueCommand({ SecretId: 'careconnect360/mariadb/prod' })
+    new GetSecretValueCommand({ SecretId: 'meridian-pms/mariadb/prod' })
   );
   return JSON.parse(response.SecretString);
 };
@@ -290,16 +305,16 @@ app.get('/api/patients/:patientId', authorizePatientAccess, getPatientHandler);
 
 ### API-03: Secure Third-Party API Integration
 
-**Threat:** MedTrack Pro API key compromise
+**Threat:** ScriptGuard API key compromise
 
 **Recommendation:** Store API keys in AWS Secrets Manager with rotation. Implement request signing and IP allowlisting.
 
 ```javascript
 // Rotate keys and use short-lived tokens where supported
-const getMedTrackClient = async () => {
-  const apiKey = await getSecretValue('careconnect360/medtrack/apikey');
+const getScriptGuardClient = async () => {
+  const apiKey = await getSecretValue('meridian-pms/scriptguard/apikey');
   return axios.create({
-    baseURL: 'https://api.medtrackpro.com/v2',
+    baseURL: 'https://api.scriptguard.io/v2',
     headers: {
       'X-API-Key': apiKey,
       'X-Request-ID': crypto.randomUUID()
@@ -311,7 +326,7 @@ const getMedTrackClient = async () => {
 
 **Network Controls:**
 - Configure VPC endpoints for outbound API calls
-- Implement egress filtering to allow only MedTrack Pro IP ranges
+- Implement egress filtering to allow only ScriptGuard IP ranges
 - Log all third-party API requests to ELK
 
 ---
@@ -332,7 +347,7 @@ const generateTurnCredentials = (userId) => {
     .digest('base64');
   
   return {
-    urls: ['turn:turn.careconnect360.com:443?transport=tcp'],
+    urls: ['turn:turn.meridian-pms.com:443?transport=tcp'],
     username,
     credential
   };
@@ -369,6 +384,177 @@ jobs:
           role-to-assume: arn:aws:iam::ACCOUNT:role/github-deploy
           aws-region: us-east-1
 ```
+
+---
+
+### AUTH-02: Mitigate Cognito User Enumeration
+
+**Threat:** Differential response timing reveals valid usernames
+
+**Recommendation:** Enable Cognito's `PREVENT_USER_EXISTENCE_ERRORS` setting so that authentication failures return identical responses regardless of whether the user exists.
+
+```bash
+aws cognito-idp update-user-pool-client \
+  --user-pool-id us-east-1_XXXXX \
+  --client-id YOUR_CLIENT_ID \
+  --prevent-user-existence-errors ENABLED
+```
+
+**Additional Controls:**
+- Implement constant-time comparison in any custom authentication Lambda triggers
+- Rate limit login attempts per source IP via WAF rules to slow enumeration
+
+---
+
+### AUTH-04: Implement Comprehensive Authentication Logging
+
+**Threat:** Insufficient auth failure logging prevents breach detection
+
+**Recommendation:** Log all authentication events — successes, failures, and token operations — with structured fields for correlation. Ship to ELK with alerting on anomalous patterns.
+
+```javascript
+const logAuthEvent = (event, req) => {
+  logger.info({
+    type: 'AUTH_EVENT',
+    action: event.action, // 'login_success', 'login_failure', 'token_refresh', 'logout'
+    userId: event.userId || 'unknown',
+    sourceIp: req.ip,
+    userAgent: req.headers['user-agent'],
+    timestamp: new Date().toISOString(),
+    failureReason: event.reason || null
+  });
+};
+```
+
+**Alerting Rules:**
+- Trigger alert on >5 failed login attempts from a single IP within 10 minutes
+- Trigger alert on successful login from a new geographic region
+- Retain auth logs for minimum 6 years per HIPAA §164.312(b)
+
+---
+
+### API-02: Implement API Rate Limiting
+
+**Threat:** Unrestricted API access enables resource exhaustion
+
+**Recommendation:** Apply rate limits at both the API Gateway and application layers. Use sliding window counters per authenticated user and per source IP for unauthenticated endpoints.
+
+```javascript
+const rateLimit = require('express-rate-limit');
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 100, // 100 requests per minute per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => req.user?.sub || req.ip, // Per-user if authenticated, per-IP otherwise
+  handler: (req, res) => {
+    logger.warn('Rate limit exceeded', { userId: req.user?.sub, ip: req.ip });
+    res.status(429).json({ error: 'Too many requests' });
+  }
+});
+
+app.use('/api/', apiLimiter);
+```
+
+**Additional Controls:**
+- Configure AWS WAF rate-based rules as a first line of defence (2,000 requests per 5 minutes per IP)
+- Apply stricter limits to sensitive endpoints: `/api/patients/search` at 20 requests per minute
+
+---
+
+### RTC-02: Validate Socket.IO Connection Origins
+
+**Threat:** Cross-site Socket.IO hijacking via missing origin validation
+
+**Recommendation:** Restrict Socket.IO connections to trusted origins and require JWT authentication on the handshake.
+
+```javascript
+const io = require('socket.io')(server, {
+  cors: {
+    origin: ['https://meridian-pms.com'],
+    methods: ['GET', 'POST'],
+    credentials: true
+  }
+});
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth.token;
+  try {
+    const decoded = jwt.verify(token, publicKey, { algorithms: ['RS256'] });
+    socket.user = decoded;
+    next();
+  } catch (err) {
+    logger.warn('Socket.IO auth failed', { ip: socket.handshake.address, error: err.message });
+    next(new Error('Authentication required'));
+  }
+});
+```
+
+---
+
+### INFRA-01: Apply Least-Privilege Lambda IAM Roles
+
+**Threat:** Over-permissioned Lambda roles enable lateral movement
+
+**Recommendation:** Create per-function IAM roles scoped to the minimum required resources. Avoid wildcard permissions on actions or resources.
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Resource": "arn:aws:s3:::meridian-pms-patient-docs/lab-results/*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "secretsmanager:GetSecretValue"
+      ],
+      "Resource": "arn:aws:secretsmanager:us-east-1:ACCOUNT:secret:meridian-pms/mariadb/prod-*"
+    }
+  ]
+}
+```
+
+**Additional Controls:**
+- Use IAM Access Analyzer to identify unused permissions and tighten roles
+- Enable CloudTrail logging for Lambda invocations to detect anomalous execution patterns
+- Review IAM policies quarterly as part of access review cycle
+
+---
+
+### INFRA-02: Secure Prometheus Metrics Endpoint
+
+**Threat:** Unauthenticated Prometheus endpoint leaks system metadata
+
+**Recommendation:** Place Prometheus behind an authentication proxy and restrict network access to the monitoring VPC subnet.
+
+```yaml
+# nginx reverse proxy for Prometheus
+server {
+    listen 9090 ssl;
+    server_name prometheus.internal.meridian-pms.com;
+
+    ssl_certificate /etc/ssl/certs/prometheus.crt;
+    ssl_certificate_key /etc/ssl/private/prometheus.key;
+
+    location / {
+        auth_basic "Prometheus";
+        auth_basic_user_file /etc/nginx/.htpasswd;
+        proxy_pass http://localhost:9091;
+    }
+}
+```
+
+**Network Controls:**
+- Bind Prometheus to localhost (127.0.0.1:9091) and proxy authenticated requests via nginx
+- Restrict security group ingress on port 9090 to the monitoring subnet CIDR only
+- Scrub sensitive labels (database hostnames, internal IPs) from exported metrics using `metric_relabel_configs`
 
 ---
 
