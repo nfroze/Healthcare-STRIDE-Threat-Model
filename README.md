@@ -42,7 +42,9 @@ The threat model analyses a multi-tier AWS architecture spanning five trust boun
 
 ## Screenshots
 
-![](screenshots/Website.png)
+**STRIDE Threat Model Report** — The interactive HTML report displaying the Meridian PMS security assessment with executive summary, threat register, and risk ratings. The page shows the threat model title, assessment metadata (version, date, classification), and the beginning of the Executive Summary section detailing healthcare security risks and key findings from the STRIDE analysis.
+
+![](screenshots/threat-model-report.png)
 
 ## Author
 
